@@ -1,0 +1,17 @@
+---
+title: "DATA607 - Week 1 Assignment"
+author: "Donald Butler"
+date: "8/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+club_rankings_csv <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/W1_spi_global_rankings.csv'
+club_matches_csv <- ''
+
+```
+
