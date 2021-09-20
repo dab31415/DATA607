@@ -1,0 +1,198 @@
+---
+title: 'DATA607 - Project 1'
+subtitle: 'Chess Tournament'
+author: "Donald Butler"
+date: "9/19/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Use the given text file which contains the results from a chess tournament to generate .CSV files that can be used to load into a database for further analysis. 
+
+## Excerpt from text file
+
+Each player in the tournament is listed along with the results from the 7 rounds of the tournament. 
+
+```
+-----------------------------------------------------------------------------------------
+ Pair | Player Name                     |Total|Round|Round|Round|Round|Round|Round|Round| 
+ Num  | USCF ID / Rtg (Pre->Post)       | Pts |  1  |  2  |  3  |  4  |  5  |  6  |  7  | 
+-----------------------------------------------------------------------------------------
+    1 | GARY HUA                        |6.0  |W  39|W  21|W  18|W  14|W   7|D  12|D   4|
+   ON | 15445895 / R: 1794   ->1817     |N:2  |W    |B    |W    |B    |W    |B    |W    |
+-----------------------------------------------------------------------------------------
+    2 | DAKSHESH DARURI                 |6.0  |W  63|W  58|L   4|W  17|W  16|W  20|W   7|
+   MI | 14598900 / R: 1553   ->1663     |N:2  |B    |W    |B    |W    |B    |W    |B    |
+-----------------------------------------------------------------------------------------
+    3 | ADITYA BAJAJ                    |6.0  |L   8|W  61|W  25|W  21|W  11|W  13|W  12|
+   MI | 14959604 / R: 1384   ->1640     |N:2  |W    |B    |W    |B    |W    |B    |W    |
+-----------------------------------------------------------------------------------------
+    4 | PATRICK H SCHILLING             |5.5  |W  23|D  28|W   2|W  26|D   5|W  19|D   1|
+   MI | 12616049 / R: 1716   ->1744     |N:2  |W    |B    |W    |B    |W    |B    |B    |
+-----------------------------------------------------------------------------------------
+    5 | HANSHI ZUO                      |5.5  |W  45|W  37|D  12|D  13|D   4|W  14|W  17|
+   MI | 14601533 / R: 1655   ->1690     |N:2  |B    |W    |B    |W    |B    |W    |B    |
+-----------------------------------------------------------------------------------------
+```
+## Load required R Libraries
+
+```{r library, warning=FALSE, message=FALSE}
+library(tidyverse)
+```
+
+# Import and Clean Data
+
+## Import tournament data
+
+```{r}
+infoFile = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_1/TournamentInfo.txt'
+raw_tournament <-read.table(file = infoFile,
+                            sep = '|',
+                            strip.white = TRUE,
+                            fill = TRUE)
+
+head(raw_tournament,7)
+```
+
+## Remove unneeded rows and columns
+
+The first four rows of data contain multiple header and row separators. The last column is created because each row of the text file ends with a column separator. The data file also contains row separators between each player.
+
+```{r}
+tournament <- raw_tournament[-c(1:4),-11] %>%
+    filter(grepl('[A-Z0-9]',V1))
+```
+
+## Set Column Names
+
+```{r}
+names(tournament)[1] = 'num_state'
+names(tournament)[2] = 'name_rating'
+names(tournament)[3] = 'points'
+names(tournament)[4:10] = paste('R', 1:7, sep = '')
+```
+
+# Create Data Frames
+
+## Extract player details
+
+The first row for each player contains their player number in the first field which is also used in the round data to match players with their opponent. Filter on numeric first column and select the player's name and points earned in the tournament.
+
+```{r}
+players <- as_tibble(tournament %>%
+  filter(grepl('[0-9]',num_state)) %>%
+  transmute(
+    playerNum = as.numeric(num_state),
+    playerName = name_rating,
+    points = as.numeric(points),
+  )) %>%
+  rowid_to_column('id')
+
+head(players,7)
+```
+
+## Extract Player State and Rating Details
+
+The second row of player data contains the player's state, USCF identification number, and their ratings both before and after tournament completion.
+
+```{r}
+ratings <- as_tibble(tournament %>%
+  filter(grepl('[A-Z]',num_state)) %>%
+  separate(name_rating, into = c('USCF_ID','rawRatings'), sep = '/') %>%
+  separate(rawRatings, into = c('rawpreRating','rawpostRating'), sep = '->') %>%
+  transmute(
+    state = num_state,
+    USCF_ID = as.numeric(USCF_ID),
+    preRating = as.numeric(str_extract(rawpreRating,'\\d{3,4}')),
+    postRating = as.numeric(str_extract(rawpostRating,'\\d{3,4}'))
+  )) %>%
+  rowid_to_column('id')
+
+head(ratings,7)
+```
+
+## Merge players and ratings data
+
+We avoid using player number to merge the two data frames because we'd be dependent on the raw text file being sorted and numbered in order. By implementing a row number, we ensure that consecutive rows in the data file are merged together.
+
+```{r}
+playerDetails <- players %>%
+  merge(ratings,by = 'id') %>%
+  select(playerNum, USCF_ID, playerName, state, preRating, points, postRating)
+
+head(playerDetails,7)
+```
+
+## Extract match results
+
+The first row of player data contains the results of the matches played in each round. We generate a data frame of all players and the match results by round.
+
+```{r}
+matchResults <- as_tibble(tournament %>%
+  filter(grepl('[0-9]',num_state)) %>%
+  gather(roundNum,roundResult,R1:R7) %>%
+  transmute(
+    playerNum = as.numeric(num_state),
+    roundNum = as.numeric(str_extract(roundNum,'\\d+')),
+    oppNum = as.numeric(str_extract(roundResult,'\\d+')),
+    result = str_extract(roundResult,'[A-Z]')
+  ))
+
+head(matchResults,7)
+
+matchResults %>%
+  count(result)
+
+```
+
+## Add opponent rating to match results
+
+Adding the opponent's pre-tournament rating to the match results data frame will make it easier to calculate the average opponents' rating and determine the expected match results.
+
+I had some issues joining player details with match results on columns of different names which is why I used a select command to rename the 'playerNum' column to 'oppNum'.
+
+
+```{r}
+matchResults <- matchResults %>%
+  left_join(playerDetails %>% select(oppNum = playerNum, oppRating = preRating),by = 'oppNum')
+
+head(matchResults,7)
+```
+
+## Calculate Average Opponent Rating
+
+For each match we join to player details to determine the opponents pre-tournament rating, then calculate the mean grouped by player. The calculation of average opponents' rating accounts for players that played less than 7 matches.
+
+
+```{r}
+playerDetails <- playerDetails %>%
+  inner_join(matchResults %>%
+               group_by(playerNum) %>%
+               summarize(avgOppRating = as.integer(mean(oppRating, na.rm = TRUE))),by = 'playerNum')
+
+head(playerDetails,7)
+```
+
+## Create CSV files
+
+Generate a csv of the players and another for the results of the tournament. These files can then be used to load into a database.
+
+```{r}
+local_path = 'C:\\Users\\dab31\\OneDrive\\Documents\\GitHub\\DATA607\\Projects\\Project_1\\'
+
+playerDetails %>%
+  write_csv(paste(local_path, 'playersDetails.csv', sep = ''))
+
+matchResults %>%
+  write_csv(paste(local_path,'matchResults.csv', sep = ''))
+
+```
+
