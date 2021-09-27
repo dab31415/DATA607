@@ -1,0 +1,121 @@
+---
+title: 'DATA607 - Assignment Week 5'
+subtitle: 'Tidying and Transforming Vaccination Data'
+author: "Donald Butler"
+date: "9/26/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Read a csv of vaccination data in Israel taken from August 2021. 
+
+## Load required R Libraries
+
+```{r library, warning=FALSE, message=FALSE}
+library(tidyverse)
+```
+
+# Import and Clean Data
+
+## Import raw vaccination data
+
+```{r}
+infoFile = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_4/israeli_vaccination_data_analysis_start.csv'
+raw_vaccination <-read.table(file = infoFile,
+                            sep = ',',
+                            strip.white = TRUE,
+                            fill = TRUE)
+
+head(raw_vaccination,7)
+```
+## Extract Required Data
+
+The data we are looking to extract from the csv file is in columns 1-5 on rows 3 and 5, and columns 2-3 on rows 4 and 6.
+
+```{r}
+vaccination <- raw_vaccination[c(3,5),c(1:5)] %>% 
+  cbind(raw_vaccination[c(4,6),c(2:3)])
+
+names(vaccination) <- c('ageGroup','not_vaccinated','fully_vaccinated','not_vaccinated_severe','fully_vaccinated_severe','not_vaccinated_percent','fully_vaccinated_percent')
+
+(vaccination <- as_tibble(vaccination))
+```
+
+## Convert column data types
+
+```{r}
+vaccination <- vaccination %>%
+  transmute(
+    ageGroup,
+    not_vaccinated = as.integer(str_replace_all(not_vaccinated,',','')),
+    fully_vaccinated = as.integer(str_replace_all(fully_vaccinated,',','')),
+    not_vaccinated_severe = as.integer(not_vaccinated_severe),
+    fully_vaccinated_severe = as.integer(fully_vaccinated_severe),
+    not_vaccinated_percent = as.numeric(str_replace(not_vaccinated_percent,'%','')) / 100,
+    fully_vaccinated_percent = as.numeric(str_replace(fully_vaccinated_percent,'%','')) / 100
+  )
+```
+
+## Calcualate Partially Vaccinated Populations
+
+Israel is using the Pfizer Covid vaccine which requires two doses before being considered fully vaccinated. For each age group, the percentage of not vaccinated and fully vaccinated can be used to calculate the total population in the group and the number of people that are partially vaccinated.
+
+```{r}
+vaccination <- vaccination %>%
+  mutate(partially_vaccinated = round((not_vaccinated + fully_vaccinated) / (not_vaccinated_percent + fully_vaccinated_percent) - not_vaccinated - fully_vaccinated,0))
+
+```
+
+## Tidy population and severe cases by vaccination status
+
+```{r}
+a <- vaccination %>% 
+  select(ageGroup, not_vaccinated, partially_vaccinated, fully_vaccinated) %>%
+  pivot_longer(cols=2:4, names_to = 'vaccination_status',values_to = 'population')
+
+b <- vaccination %>% 
+  select(ageGroup,not_vaccinated = not_vaccinated_severe,fully_vaccinated = fully_vaccinated_severe) %>%
+  pivot_longer(cols=2:3, names_to = 'vaccination_status', values_to = 'severe_cases')
+    
+tidy_vaccinations <- a %>%
+  left_join(b, by = c('ageGroup' = 'ageGroup', 'vaccination_status' = 'vaccination_status'))
+
+tidy_vaccinations
+```
+
+# Question 1
+
+Do you have enough information to calculate the total population? What does this total population represent?
+
+```{r}
+(total_population = sum(tidy_vaccinations$population))
+```
+I initially thought that there was enough information to calculate the total population after adding in the number of partially vaccinated individuals for each age group. Based on the dataset, I've calculated the population of Israel as 7.2 million people, however looking online I found the total population is about 8.8 million. This seems to indicate that we have not accounted for about 1.6 million people.
+
+Without knowing the specifics of the dataset, I suspect the difference in population counts may indicate that they have excluded children under the age of 12 which are currently unable to get vaccinated. 
+
+# Question 2
+
+Calculate the Efficacy vs Disease using the formula 1 - ((% fully vaccinated severe cases per 100k) / (% not vaccinated severe cases per 100k)).
+
+```{r}
+(U50Efficacy <- 1 - (11/43))
+(O50Efficacy <- 1 - (290/171))
+```
+In the over 50 age group the vaccine appears to not be effective at preventing severe cases, but this is due to the increase in cases of the delta variant, the low number of non-vaccinated people in the age group, and the amount of time since completion of their second dose.
+
+In the under 50 age group, the vaccine efficacy is high indicating that it is better than being unvaccinated.
+
+# Question 3
+
+From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
+
+I'm not clear what is being asked here. I would have thought that the rates of severe cases between the two groups is in the severe cases per 100K statistics.
