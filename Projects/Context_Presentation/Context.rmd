@@ -1,0 +1,40 @@
+---
+title: 'DATA607 - Data Science in Context'
+author: "Donald Butler"
+date: "9/28/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+
+
+
+# Local Files
+
+```{r}
+library(tidyverse)
+
+localpath <- './DATA/'
+
+filenames <- list.files(path = localpath, pattern = '0015[0-9]_DeviceStatus.csv$')
+filepaths <- paste(localpath, filenames, sep = '')
+
+# Initialize Empty Tibble
+df <- tibble()
+for (i in 1:length(filepaths)) {
+  tmp <- read_csv(filepaths[i])
+  df <- rbind(df, tmp)
+}
+
+
+
+```
+
