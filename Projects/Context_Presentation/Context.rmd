@@ -19,21 +19,33 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Local Files
 
-```{r}
+```{r, warning=FALSE}
 library(tidyverse)
 
 localpath <- './DATA/'
 
-filenames <- list.files(path = localpath, pattern = '0015[0-9]_DeviceStatus.csv$')
+# Get list of 
+filenames <- list.files(path = localpath, pattern = 'DeviceStatus.csv$')
+
+
 filepaths <- paste(localpath, filenames, sep = '')
 
 # Initialize Empty Tibble
-df <- tibble()
+df_local <- tibble()
+
 for (i in 1:length(filepaths)) {
-  tmp <- read_csv(filepaths[i])
-  df <- rbind(df, tmp)
+  df_local <- rbind(df_local, read_csv(filepaths[i], col_types = cols(.default = 'c', 'Poll Time' = 't'),  show_col_types = FALSE))
 }
 
+glimpse(df_local)
+
+```
+
+# Web
+
+```{r}
+
+URL = '
 
 
 ```
