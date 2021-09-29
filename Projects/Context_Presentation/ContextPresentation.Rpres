@@ -1,28 +1,106 @@
-Data Science in Context
+Loading Multiple Data Files
 ========================================================
 author: Donald Butler
 date: 09/28/2021
 autosize: true
 
-First Slide
+Introduction
 ========================================================
 
-For more details on authoring R presentations please visit <https://support.rstudio.com/hc/en-us/articles/200486468>.
+We run a polling script at each restaurant daily to identify the status of the point-of-sale terminals and kitchen controllers in the store. The results are then brought back to a file server. In the image below, you can see the list of files, one for each store, and a sample of their contents. For the daily report, we read each file to determine which devices are offline.
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+![Polling Data](DeviceStatus.png)
 
-Slide With Code
+Generate a List of Files
+========================================================
+
+Use the list.files function to obtain a directory list
+
+```{r}
+localpath <- './DATA/'
+# Get list of files in local DATA directory
+filenames <- list.files(path = localpath, pattern = '.csv')
+head(filenames, 10)
+```
+
+Loop through the list of files
+========================================================
+
+For each file in the directory, use read_csv to load it and rbind to append it to a single data frame.
+
+```{r}
+library(tidyverse)
+
+# Create full path names
+filepaths <- paste(localpath, filenames, sep = '')
+
+# Initialize data frame
+df_local <- tibble()
+
+for (i in 1:length(filepaths)) {
+  # read each file and append to df_local
+  df_local <- rbind(df_local, read_csv(filepaths[i], col_types = cols(.default = 'c', 'Poll Time' = 't'),  show_col_types = FALSE))
+}
+```
+
+Final Result
+========================================================
+
+From here, we can tidy the dataset and generate the report that we need.
+
+```{r}
+glimpse(df_local)
+```
+
+
+Github Repository?
+========================================================
+
+For our class assignments, we've been asked to place our data files in a github repository, so I wondered if a similar technique could be used to load an unknown number of data files.
+
+I found a solution in the github API, that would allow a call to return the contents of a directory within a repository.
+- https://docs.github.com/en/rest/reference/repos
+
+
+Get Directory Files
 ========================================================
 
 ```{r}
-summary(cars)
+library(httr)
+
+URL <- 'https://api.github.com/repos/dab31415/DATA607/contents/Projects/Context_Presentation/DATA'
+APIResult <- GET(URL)
+stop_for_status(APIResult)
+APIResult
 ```
 
-Slide With Plot
+Convert Result JSON to data frame
 ========================================================
 
-```{r, echo=FALSE}
-plot(cars)
+```{r}
+library(jsonlite)
+
+json <- fromJSON(content(APIResult,'text'))
+
+glimpse(json)
 ```
+
+Loop through download_url attribute
+========================================================
+
+Use the download_url attribute to read the csv files from the github repository.
+
+```{r}
+df_web <- tibble()
+for (i in 1:nrow(json)) {
+  df_web <- rbind(df_web, read_csv(json$download_url[i], col_types = cols(.default = 'c', 'Poll Time' = 't'), show_col_types = FALSE))
+}
+```
+
+Final Result from Github
+========================================================
+
+```{r}
+glimpse(df_web)
+```
+

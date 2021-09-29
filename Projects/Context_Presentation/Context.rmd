@@ -16,24 +16,43 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
+## Load Libraries
+
+```{r}
+library(tidyverse)
+
+# Package for making API calls
+library(httr)
+
+# Package for converting json to data frame
+library(jsonlite)
+```
 
 # Local Files
 
-```{r, warning=FALSE}
-library(tidyverse)
+## Generate list of local files
 
+```{r, warning=FALSE}
 localpath <- './DATA/'
 
-# Get list of 
-filenames <- list.files(path = localpath, pattern = 'DeviceStatus.csv$')
+# Get list of files in local DATA directory
+filenames <- list.files(path = localpath, pattern = '.csv')
 
+head(filenames,5)
 
+```
+
+## Read files into data frame
+
+```{r}
+# Create full path names
 filepaths <- paste(localpath, filenames, sep = '')
 
-# Initialize Empty Tibble
+# Initialize data frame
 df_local <- tibble()
 
 for (i in 1:length(filepaths)) {
+  # read each file and append to df_local
   df_local <- rbind(df_local, read_csv(filepaths[i], col_types = cols(.default = 'c', 'Poll Time' = 't'),  show_col_types = FALSE))
 }
 
@@ -44,9 +63,23 @@ glimpse(df_local)
 # Web
 
 ```{r}
+library(httr)
+library(jsonlite)
 
-URL = '
+APIURL <- 'https://api.github.com/repos/dab31415/DATA607/contents/Projects/Context_Presentation/DATA'
 
+#Get list of files in web directory matching regex
+APIReq <- GET(APIURL)
+stop_for_status(APIReq)
+APIReq
 
+json <- fromJSON(content(APIReq,'text'))
+
+df_web <- tibble()
+for (i in 1:nrow(json)) {
+  df_web <- rbind(df_web, read_csv(json$download_url[i], col_types = cols(.default = 'c', 'Poll Time' = 't'), show_col_types = FALSE))
+}
+
+glimpse(df_web)
 ```
 
