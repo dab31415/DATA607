@@ -63,7 +63,7 @@ glimpse(df_local)
 ```
 
 ```
-Rows: 100
+Rows: 31
 Columns: 21
 $ `Poll Date` <chr> "09/28/2021", "09/28/2021", "09/28/2021", "09/28/2021", "0~
 $ `Poll Time` <time> 05:58:11, 05:58:45, 05:58:10, 05:58:02, 05:58:00, 05:58:0~
@@ -113,10 +113,10 @@ APIResult
 
 ```
 Response [https://api.github.com/repos/dab31415/DATA607/contents/Projects/Context_Presentation/DATA]
-  Date: 2021-09-29 06:46
+  Date: 2021-09-29 06:52
   Status: 200
   Content-Type: application/json; charset=utf-8
-  Size: 112 kB
+  Size: 34.6 kB
 [
   {
     "name": "00101_DeviceStatus.csv",
@@ -143,7 +143,7 @@ glimpse(json)
 ```
 
 ```
-Rows: 100
+Rows: 31
 Columns: 10
 $ name         <chr> "00101_DeviceStatus.csv", "00102_DeviceStatus.csv", "0010~
 $ path         <chr> "Projects/Context_Presentation/DATA/00101_DeviceStatus.cs~
@@ -179,7 +179,7 @@ glimpse(df_web)
 ```
 
 ```
-Rows: 100
+Rows: 31
 Columns: 21
 $ `Poll Date` <chr> "09/28/2021", "09/28/2021", "09/28/2021", "09/28/2021", "0~
 $ `Poll Time` <time> 05:58:11, 05:58:45, 05:58:10, 05:58:02, 05:58:00, 05:58:0~
