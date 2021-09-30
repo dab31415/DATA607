@@ -1,7 +1,13 @@
-Loading Multiple Data Files
+<style>
+.small-code pre code {
+  font-size: 1em;
+}
+</style>
+
+Reading an Unknown Set of Data Files
 ========================================================
 author: Donald Butler
-date: 09/28/2021
+date: 09/29/2021
 autosize: true
 
 Introduction
@@ -13,6 +19,7 @@ We run a polling script at each restaurant daily to identify the status of the p
 
 Generate a List of Files
 ========================================================
+class: small-code
 
 Use the list.files function to obtain a directory list
 
@@ -20,50 +27,75 @@ Use the list.files function to obtain a directory list
 localpath <- './DATA/'
 # Get list of files in local DATA directory
 filenames <- list.files(path = localpath, pattern = '.csv')
+
+length(filenames)
+
 head(filenames, 10)
 ```
 
-Loop through the list of files
+Read Files
 ========================================================
+class: small-code
 
 For each file in the directory, use read_csv to load it and rbind to append it to a single data frame.
 
 ```{r}
 library(tidyverse)
 
-# Create full path names
-filepaths <- paste(localpath, filenames, sep = '')
-
 # Initialize data frame
 df_local <- tibble()
 
-for (i in 1:length(filepaths)) {
+for (i in 1:length(filenames)) {
   # read each file and append to df_local
-  df_local <- rbind(df_local, read_csv(filepaths[i], col_types = cols(.default = 'c', 'Poll Time' = 't'),  show_col_types = FALSE))
+  tmp <- read_csv(paste(localpath, filenames[i], sep = ''), col_types = cols(.default = 'c', 'Poll Time' = 't'),  show_col_types = FALSE)
+
+  # if needed, process tmp data frame here before appending
+
+  # append tmp data frame to df_local
+  df_local <- rbind(df_local, tmp)
 }
+df_local
 ```
-
-Final Result
-========================================================
-
-From here, we can tidy the dataset and generate the report that we need.
-
-```{r}
-glimpse(df_local)
-```
-
 
 Github Repository?
 ========================================================
+class: small-code
 
 For our class assignments, we've been asked to place our data files in a github repository, so I wondered if a similar technique could be used to load an unknown number of data files.
 
-I found a solution in the github API, that would allow a call to return the contents of a directory within a repository.
-- https://docs.github.com/en/rest/reference/repos
+I found a solution in the github API which will return the contents of a path in the repository.
+- https://docs.github.com/en/rest/reference/repos#get-repository-content
 
+```
+GET /repos/{owner}/{repo}/contents/{path}
+```
 
-Get Directory Files
+The API will return a json string containing the contents of the path provided.
+
+```
+{
+  "type": "file",
+  "encoding": "base64",
+  "size": 5362,
+  "name": "README.md",
+  "path": "README.md",
+  "content": "encoded content ...",
+  "sha": "3d21ec53a331a6f037a91c368710b99387d012c1",
+  "url": "https://api.github.com/repos/octokit/octokit.rb/contents/README.md",
+  "git_url": "https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1",
+  "html_url": "https://github.com/octokit/octokit.rb/blob/master/README.md",
+  "download_url": "https://raw.githubusercontent.com/octokit/octokit.rb/master/README.md",
+  "_links": {
+    "git": "https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1",
+    "self": "https://api.github.com/repos/octokit/octokit.rb/contents/README.md",
+    "html": "https://github.com/octokit/octokit.rb/blob/master/README.md"
+  }
+}
+```
+
+Get list of Github Repository Files
 ========================================================
+class: small-code
 
 ```{r}
 library(httr)
@@ -76,6 +108,7 @@ APIResult
 
 Convert Result JSON to data frame
 ========================================================
+class: small-code
 
 ```{r}
 library(jsonlite)
@@ -85,22 +118,37 @@ json <- fromJSON(content(APIResult,'text'))
 glimpse(json)
 ```
 
-Loop through download_url attribute
+Read Github Repository Files
 ========================================================
+class: small-code
 
 Use the download_url attribute to read the csv files from the github repository.
 
 ```{r}
+selected_files <- json %>%
+	filter(grepl('.csv', name)) %>%
+	select(download_url)
+
 df_web <- tibble()
-for (i in 1:nrow(json)) {
-  df_web <- rbind(df_web, read_csv(json$download_url[i], col_types = cols(.default = 'c', 'Poll Time' = 't'), show_col_types = FALSE))
+for (i in 1:nrow(selected_files)) {
+  # read each file and append to df_local
+  tmp <- read_csv(selected_files$download_url[i], col_types = cols(.default = 'c', 'Poll Time' = 't'), show_col_types = FALSE)
+  
+  # if needed, process tmp data frame here before appending
+
+  # append tmp data frame to df_web
+  df_web <- rbind(df_web, tmp)
 }
+df_web
 ```
 
-Final Result from Github
+Conclusion
 ========================================================
+class: small-code
 
-```{r}
-glimpse(df_web)
-```
+A couple of techniques used to solve the initial problem.
+
+- Using a web API to get information back into my project
+- Converting the json text into a useful data format in R
+- Implementing an R-Presentation document
 
