@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Loading Multiple Data Files</title>
+  <title>Reading an Unknown Set of Data Files</title>
     
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -739,7 +739,7 @@ hljs.initHighlightingOnLoad();
    
   
 
-
+<style>.small-code pre code {  font-size: 1em;}</style>
 
 
 
@@ -750,7 +750,7 @@ hljs.initHighlightingOnLoad();
   <div class="slides">
 
 <section data-state="section" data-transition="linear" data-transition-speed="default">
-<h1>Loading Multiple Data Files</h1><p>Donald Butler<br/>09&#x2F;28&#x2F;2021</p>
+<h1>Reading an Unknown Set of Data Files</h1><p>Donald Butler<br/>09&#x2F;29&#x2F;2021</p>
 
 <div class="slideContent" >
 
@@ -769,13 +769,20 @@ hljs.initHighlightingOnLoad();
 </section>
 <section data-transition="linear" data-transition-speed="default">
 <h3>Generate a List of Files</h3>
-<div class="slideContent" >
+<div class="slideContent small-code" >
 <p>Use the list.files function to obtain a directory list</p>
 
 <pre><code class="r">localpath &lt;- &#39;./DATA/&#39;
 # Get list of files in local DATA directory
 filenames &lt;- list.files(path = localpath, pattern = &#39;.csv&#39;)
-head(filenames, 10)
+
+length(filenames)
+</code></pre>
+
+<pre><code>[1] 31
+</code></pre>
+
+<pre><code class="r">head(filenames, 10)
 </code></pre>
 
 <pre><code> [1] &quot;00101_DeviceStatus.csv&quot; &quot;00102_DeviceStatus.csv&quot; &quot;00103_DeviceStatus.csv&quot;
@@ -788,58 +795,43 @@ head(filenames, 10)
 
 </section>
 <section data-transition="linear" data-transition-speed="default">
-<h3>Loop through the list of files</h3>
-<div class="slideContent" >
+<h3>Read Files</h3>
+<div class="slideContent small-code" >
 <p>For each file in the directory, use read_csv to load it and rbind to append it to a single data frame.</p>
 
 <pre><code class="r">library(tidyverse)
 
-# Create full path names
-filepaths &lt;- paste(localpath, filenames, sep = &#39;&#39;)
-
 # Initialize data frame
 df_local &lt;- tibble()
 
-for (i in 1:length(filepaths)) {
+for (i in 1:length(filenames)) {
   # read each file and append to df_local
-  df_local &lt;- rbind(df_local, read_csv(filepaths[i], col_types = cols(.default = &#39;c&#39;, &#39;Poll Time&#39; = &#39;t&#39;),  show_col_types = FALSE))
+  tmp &lt;- read_csv(paste(localpath, filenames[i], sep = &#39;&#39;), col_types = cols(.default = &#39;c&#39;, &#39;Poll Time&#39; = &#39;t&#39;),  show_col_types = FALSE)
+
+  # if needed, process tmp data frame here before appending
+
+  # append tmp data frame to df_local
+  df_local &lt;- rbind(df_local, tmp)
 }
+df_local
 </code></pre>
 
-</div>
-
-</section>
-<section data-transition="linear" data-transition-speed="default">
-<h3>Final Result</h3>
-<div class="slideContent" >
-<p>From here, we can tidy the dataset and generate the report that we need.</p>
-
-<pre><code class="r">glimpse(df_local)
-</code></pre>
-
-<pre><code>Rows: 100
-Columns: 21
-$ `Poll Date` &lt;chr&gt; &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;0~
-$ `Poll Time` &lt;time&gt; 05:58:11, 05:58:45, 05:58:10, 05:58:02, 05:58:00, 05:58:0~
-$ Site        &lt;chr&gt; &quot;00101&quot;, &quot;00102&quot;, &quot;00103&quot;, &quot;00105&quot;, &quot;00106&quot;, &quot;00107&quot;, &quot;001~
-$ POS1        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS2        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS3        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS4        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS5        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ POS6        &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, &quot;O~
-$ POS7        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ POS8        &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, NA, NA, ~
-$ POS9        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ KC1         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC2         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC3         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, NA, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, ~
-$ KC4         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC5         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC6         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC7         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC8         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC9         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
+<pre><code># A tibble: 31 x 21
+   `Poll Date` `Poll Time` Site  POS1  POS2  POS3  POS4  POS5  POS6  POS7  POS8 
+   &lt;chr&gt;       &lt;time&gt;      &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
+ 1 09/28/2021  05:58:11    00101 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 2 09/28/2021  05:58:45    00102 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 3 09/28/2021  05:58:10    00103 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 4 09/28/2021  05:58:02    00105 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 5 09/28/2021  05:58:00    00106 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 6 09/28/2021  05:58:00    00107 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 7 09/28/2021  05:58:31    00108 OK    OK    OK    OK    &lt;NA&gt;  OK    &lt;NA&gt;  OK   
+ 8 09/28/2021  05:58:05    00110 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 9 09/28/2021  05:58:07    00111 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+10 09/28/2021  05:58:03    00112 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+# ... with 21 more rows, and 10 more variables: POS9 &lt;chr&gt;, KC1 &lt;chr&gt;,
+#   KC2 &lt;chr&gt;, KC3 &lt;chr&gt;, KC4 &lt;chr&gt;, KC5 &lt;chr&gt;, KC6 &lt;chr&gt;, KC7 &lt;chr&gt;,
+#   KC8 &lt;chr&gt;, KC9 &lt;chr&gt;
 </code></pre>
 
 </div>
@@ -847,21 +839,46 @@ $ KC9         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA
 </section>
 <section data-transition="linear" data-transition-speed="default">
 <h3>Github Repository?</h3>
-<div class="slideContent" >
+<div class="slideContent small-code" >
 <p>For our class assignments, we&#39;ve been asked to place our data files in a github repository, so I wondered if a similar technique could be used to load an unknown number of data files.</p>
 
-<p>I found a solution in the github API, that would allow a call to return the contents of a directory within a repository.</p>
+<p>I found a solution in the github API which will return the contents of a path in the repository.</p>
 
 <ul>
-<li><a href="https://docs.github.com/en/rest/reference/repos">https://docs.github.com/en/rest/reference/repos</a></li>
+<li><a href="https://docs.github.com/en/rest/reference/repos#get-repository-content">https://docs.github.com/en/rest/reference/repos#get-repository-content</a></li>
 </ul>
+
+<pre><code>GET /repos/{owner}/{repo}/contents/{path}
+</code></pre>
+
+<p>The API will return a json string containing the contents of the path provided.</p>
+
+<pre><code>{
+  &quot;type&quot;: &quot;file&quot;,
+  &quot;encoding&quot;: &quot;base64&quot;,
+  &quot;size&quot;: 5362,
+  &quot;name&quot;: &quot;README.md&quot;,
+  &quot;path&quot;: &quot;README.md&quot;,
+  &quot;content&quot;: &quot;encoded content ...&quot;,
+  &quot;sha&quot;: &quot;3d21ec53a331a6f037a91c368710b99387d012c1&quot;,
+  &quot;url&quot;: &quot;https://api.github.com/repos/octokit/octokit.rb/contents/README.md&quot;,
+  &quot;git_url&quot;: &quot;https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1&quot;,
+  &quot;html_url&quot;: &quot;https://github.com/octokit/octokit.rb/blob/master/README.md&quot;,
+  &quot;download_url&quot;: &quot;https://raw.githubusercontent.com/octokit/octokit.rb/master/README.md&quot;,
+  &quot;_links&quot;: {
+    &quot;git&quot;: &quot;https://api.github.com/repos/octokit/octokit.rb/git/blobs/3d21ec53a331a6f037a91c368710b99387d012c1&quot;,
+    &quot;self&quot;: &quot;https://api.github.com/repos/octokit/octokit.rb/contents/README.md&quot;,
+    &quot;html&quot;: &quot;https://github.com/octokit/octokit.rb/blob/master/README.md&quot;
+  }
+}
+</code></pre>
 
 </div>
 
 </section>
 <section data-transition="linear" data-transition-speed="default">
-<h3>Get Directory Files</h3>
-<div class="slideContent" >
+<h3>Get list of Github Repository Files</h3>
+<div class="slideContent small-code" >
 <pre><code class="r">library(httr)
 
 URL &lt;- &#39;https://api.github.com/repos/dab31415/DATA607/contents/Projects/Context_Presentation/DATA&#39;
@@ -871,10 +888,10 @@ APIResult
 </code></pre>
 
 <pre><code>Response [https://api.github.com/repos/dab31415/DATA607/contents/Projects/Context_Presentation/DATA]
-  Date: 2021-09-29 06:46
+  Date: 2021-09-30 00:08
   Status: 200
   Content-Type: application/json; charset=utf-8
-  Size: 112 kB
+  Size: 34.6 kB
 [
   {
     &quot;name&quot;: &quot;00101_DeviceStatus.csv&quot;,
@@ -893,7 +910,7 @@ APIResult
 </section>
 <section data-transition="linear" data-transition-speed="default">
 <h3>Convert Result JSON to data frame</h3>
-<div class="slideContent" >
+<div class="slideContent small-code" >
 <pre><code class="r">library(jsonlite)
 
 json &lt;- fromJSON(content(APIResult,&#39;text&#39;))
@@ -901,7 +918,7 @@ json &lt;- fromJSON(content(APIResult,&#39;text&#39;))
 glimpse(json)
 </code></pre>
 
-<pre><code>Rows: 100
+<pre><code>Rows: 31
 Columns: 10
 $ name         &lt;chr&gt; &quot;00101_DeviceStatus.csv&quot;, &quot;00102_DeviceStatus.csv&quot;, &quot;0010~
 $ path         &lt;chr&gt; &quot;Projects/Context_Presentation/DATA/00101_DeviceStatus.cs~
@@ -919,49 +936,58 @@ $ `_links`     &lt;df[,3]&gt; &lt;data.frame[26 x 3]&gt;
 
 </section>
 <section data-transition="linear" data-transition-speed="default">
-<h3>Loop through download_url attribute</h3>
-<div class="slideContent" >
+<h3>Read Github Repository Files</h3>
+<div class="slideContent small-code" >
 <p>Use the download_url attribute to read the csv files from the github repository.</p>
 
-<pre><code class="r">df_web &lt;- tibble()
-for (i in 1:nrow(json)) {
-  df_web &lt;- rbind(df_web, read_csv(json$download_url[i], col_types = cols(.default = &#39;c&#39;, &#39;Poll Time&#39; = &#39;t&#39;), show_col_types = FALSE))
+<pre><code class="r">selected_files &lt;- json %&gt;%
+    filter(grepl(&#39;.csv&#39;, name)) %&gt;%
+    select(download_url)
+
+df_web &lt;- tibble()
+for (i in 1:nrow(selected_files)) {
+  # read each file and append to df_local
+  tmp &lt;- read_csv(selected_files$download_url[i], col_types = cols(.default = &#39;c&#39;, &#39;Poll Time&#39; = &#39;t&#39;), show_col_types = FALSE)
+
+  # if needed, process tmp data frame here before appending
+
+  # append tmp data frame to df_web
+  df_web &lt;- rbind(df_web, tmp)
 }
+df_web
+</code></pre>
+
+<pre><code># A tibble: 31 x 21
+   `Poll Date` `Poll Time` Site  POS1  POS2  POS3  POS4  POS5  POS6  POS7  POS8 
+   &lt;chr&gt;       &lt;time&gt;      &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
+ 1 09/28/2021  05:58:11    00101 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 2 09/28/2021  05:58:45    00102 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 3 09/28/2021  05:58:10    00103 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 4 09/28/2021  05:58:02    00105 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 5 09/28/2021  05:58:00    00106 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 6 09/28/2021  05:58:00    00107 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 7 09/28/2021  05:58:31    00108 OK    OK    OK    OK    &lt;NA&gt;  OK    &lt;NA&gt;  OK   
+ 8 09/28/2021  05:58:05    00110 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+ 9 09/28/2021  05:58:07    00111 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+10 09/28/2021  05:58:03    00112 OK    OK    OK    OK    &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt;  &lt;NA&gt; 
+# ... with 21 more rows, and 10 more variables: POS9 &lt;chr&gt;, KC1 &lt;chr&gt;,
+#   KC2 &lt;chr&gt;, KC3 &lt;chr&gt;, KC4 &lt;chr&gt;, KC5 &lt;chr&gt;, KC6 &lt;chr&gt;, KC7 &lt;chr&gt;,
+#   KC8 &lt;chr&gt;, KC9 &lt;chr&gt;
 </code></pre>
 
 </div>
 
 </section>
 <section data-transition="linear" data-transition-speed="default">
-<h3>Final Result from Github</h3>
-<div class="slideContent" >
-<pre><code class="r">glimpse(df_web)
-</code></pre>
+<h3>Conclusion</h3>
+<div class="slideContent small-code" >
+<p>A couple of techniques used to solve the initial problem.</p>
 
-<pre><code>Rows: 100
-Columns: 21
-$ `Poll Date` &lt;chr&gt; &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;09/28/2021&quot;, &quot;0~
-$ `Poll Time` &lt;time&gt; 05:58:11, 05:58:45, 05:58:10, 05:58:02, 05:58:00, 05:58:0~
-$ Site        &lt;chr&gt; &quot;00101&quot;, &quot;00102&quot;, &quot;00103&quot;, &quot;00105&quot;, &quot;00106&quot;, &quot;00107&quot;, &quot;001~
-$ POS1        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS2        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS3        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS4        &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ POS5        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ POS6        &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, &quot;O~
-$ POS7        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ POS8        &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, NA, NA, ~
-$ POS9        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-$ KC1         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC2         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC3         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, NA, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, ~
-$ KC4         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC5         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC6         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC7         &lt;chr&gt; &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;, &quot;OK&quot;~
-$ KC8         &lt;chr&gt; NA, NA, NA, NA, NA, NA, &quot;OK&quot;, NA, NA, NA, NA, NA, &quot;OK&quot;, NA~
-$ KC9         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA~
-</code></pre>
+<ul>
+<li>Using a web API to get information back into my project</li>
+<li>Converting the json text into a useful data format in R</li>
+<li>Implementing an R-Presentation document</li>
+</ul>
 
 </div>
 
