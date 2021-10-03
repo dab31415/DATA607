@@ -1,0 +1,73 @@
+---
+title: 'DATA607 - Project 2'
+subtitle: 'Data Transformation'
+author: "Donald Butler"
+date: "10/03/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Choose any three of the “wide” datasets identified in the Week 6 Discussion items.
+
+## Load required R Libraries
+
+```{r library, warning=FALSE, message=FALSE}
+library(tidyverse)
+```
+
+# Aruba Weather
+
+## Import raw data
+
+```{r}
+aw_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/ArubaWeather.csv'
+aw_raw <-read.table(file = aw_file,
+                            sep = ',',
+                            strip.white = TRUE,
+                            fill = TRUE)
+
+head(aw_raw)
+```
+## Tidy Dataset
+
+
+
+# Customer Churn
+
+## Import raw data
+
+```{r}
+cc_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/CustomerChurn.csv'
+cc_raw <-read.table(file = cc_file,
+                            sep = ',',
+                            strip.white = TRUE,
+                            fill = TRUE)
+
+head(cc_raw)
+```
+## Tidy Dataset
+
+
+
+# Student Testing
+
+## Import raw data
+
+```{r}
+st_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/StudentTesting.csv'
+st_raw <-read.table(file = st_file,
+                            sep = ',',
+                            strip.white = TRUE,
+                            fill = TRUE)
+
+head(st_raw)
+```
+
