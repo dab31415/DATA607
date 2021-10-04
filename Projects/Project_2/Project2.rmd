@@ -25,20 +25,52 @@ library(tidyverse)
 
 # Aruba Weather
 
+The Aruba weather dataset may not be very interesting from a data analysis point of view, but it came to mind when looking for a "wide" dataset. When my family was planning a vacation to Aruba, we wanted to find the best time of year to go, so we considered this weather data. We've been to Aruba three times and always go in the first week of December.
+
 ## Import raw data
 
 ```{r}
 aw_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/ArubaWeather.csv'
-aw_raw <-read.table(file = aw_file,
-                            sep = ',',
-                            strip.white = TRUE,
-                            fill = TRUE)
-
-head(aw_raw)
+aw_raw <-read_csv(aw_file,show_col_types = FALSE)
+names(aw_raw)[1] <- 'weather_attr'
+aw_raw
 ```
 ## Tidy Dataset
 
+We will tidy the raw dataset by performing the following steps.  
+1. Pivot on the month columns creating a new row for each month.  
+2. Pivot on the weather_attr column creating a new statistic for each attribute.  
 
+To prevent ggplot from ordering the month column alphabetically, we will specify the levels as a factor.
+
+```{r}
+aw_tidy <- aw_raw %>%
+  pivot_longer(-weather_attr, names_to = 'month_name', values_to = 'weather_value') %>%
+  pivot_wider(names_from = weather_attr, values_from = weather_value)
+
+names(aw_tidy) <- c('month_name','high_temp','low_temp','daylight','rainfall')
+
+# Specify month as an ordered factor for plotting
+aw_tidy$month_name <- factor(aw_tidy$month_name, levels = month.abb)
+
+aw_tidy
+```
+
+## Average Temperatures
+
+```{r}
+
+aw_tidy %>%
+  pivot_longer(-month_name, names_to = 'weather_attr', values_to = 'weather_value') %>%
+  filter(weather_attr %in% c('high_temp','low_temp')) %>%
+  ggplot(aes(x = month_name, y = weather_value, group = weather_attr)) + 
+  geom_line(aes(color = weather_attr)) +
+  geom_point(aes(color = weather_attr), size = 2) + 
+  ggtitle('Average Temperatures in Aruba') + 
+  xlab('Month') + ylab('Temperature (°F)') + 
+  scale_color_manual(labels = c('Avg High','Avg Low'), values = c('darkred','darkblue')) 
+
+```
 
 # Customer Churn
 
@@ -46,16 +78,54 @@ head(aw_raw)
 
 ```{r}
 cc_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/CustomerChurn.csv'
-cc_raw <-read.table(file = cc_file,
-                            sep = ',',
-                            strip.white = TRUE,
-                            fill = TRUE)
-
-head(cc_raw)
+cc_raw <-read_csv(cc_file,show_col_types = FALSE)
+cc_raw
 ```
 ## Tidy Dataset
 
+We will tidy the raw dataset by performing the following steps.  
+1. Fill Division column down to update blank cells in the original dataset with the value from the row above.  
+2. Pivot on the month columns creating a new row for each month.  
+3. Pivot on the Description column creating a new statistic for the number of customers gained and lost each month.  
+4. Calculate and append the Net statistic as the sum of customers gained and lost in the month.  
+5. Calculate and append the Total statistic as the cumulative total number of customers through the month. Note: the dataset doesn't include the number of customers prior to January, and is assumed to be zero for chun calculations.  
+6. Calculate and append the Churn statistic as the number of customers lost in the month divided by the prior month's Total customers.  
 
+To prevent ggplot from ordering the month column alphabetically, we will specify the levels as a factor.
+
+```{r}
+cc_tidy <- cc_raw %>%
+  fill(Division, .direction = 'down') %>%
+  pivot_longer(-c('Division','Description'),names_to = 'month_name', values_to = 'customers') %>%
+  pivot_wider(names_from = Description, values_from = 'customers') %>%
+  mutate(Net = Gained + Lost) %>%
+  group_by(Division) %>%
+  mutate(Total = cumsum(Net),
+         # (Total - Net) = Prior Month's Total Customers
+         Churn = 100 * (-1 * Lost) / (Total - Net))
+
+# Specify month as an ordered factor for plotting
+cc_tidy$month_name <- factor(cc_tidy$month_name, levels = month.abb)
+
+cc_tidy
+```
+## Plotting Churn Rates
+
+```{r}
+
+cc_tidy %>%
+  filter(!is.nan(Churn)) %>%
+  ggplot(aes(x = month_name, y = Churn, group = Division)) + 
+  geom_line(aes(color = Division)) +
+  geom_point(aes(color = Division), size = 2) + 
+  ggtitle('Monthy Churn Rates by Division') + 
+  xlab('Month') + ylab('Churn Rate (%)')
+
+```
+
+## Analysis
+
+The churn rates as calculated would be different if there were customers from the prior year. Division A has the highest monthly churn rate in nearly every month, and division B has the lowest in nearly all months.
 
 # Student Testing
 
@@ -63,11 +133,34 @@ head(cc_raw)
 
 ```{r}
 st_file = 'https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_2/StudentTesting.csv'
-st_raw <-read.table(file = st_file,
-                            sep = ',',
-                            strip.white = TRUE,
-                            fill = TRUE)
+st_raw <-read_csv(st_file,show_col_types = FALSE)
+st_raw
+```
+## Tidy Dataset
 
-head(st_raw)
+First update the column names for test scores so we have a value to pivot on. Then pivot on the Score and Time Studied columns to generate a row for each test number.
+
+```{r}
+
+names(st_raw)[2] <- 'ScoreTest1'
+names(st_raw)[4] <- 'ScoreTest2'
+names(st_raw)[6] <- 'ScoreTest3'
+names(st_raw)[8] <- 'ScoreTest4'
+
+st_tidy <- st_raw %>%
+  pivot_longer(-c(Student,Gender), names_to = c('.value','TestNum'), names_pattern = '(Score|TimeStudied)Test([1-9])')
+
+st_tidy
+```
+
+## Plotting Test Scores vs Study Time
+
+```{r, warning=FALSE, message=FALSE}
+st_tidy %>% ggplot(aes(x = TimeStudied, y = Score, shape = Gender, color = Gender)) + 
+  geom_point() +
+  geom_smooth() + 
+  ggtitle('Time Studied vs Test Scores') + 
+  xlab('Time Studied (minutes)') + ylab('Test Scores (%)')
+  
 ```
 
