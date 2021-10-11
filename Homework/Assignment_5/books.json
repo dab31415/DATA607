@@ -1,11 +1,7 @@
 {"books" :[
 	{
 		"title" : "Treasure",
-		"authors" :[
-			{
-				"author" : "Clive Cussler"
-			}
-		],
+		"authors" : "Clive Cussler",
 		"year" : "1988",
 		"publisher" : "Simon & Schuster",
 		"pages" : "539",
@@ -13,11 +9,7 @@
 	},
 	{
 		"title" : "The Hunt for Red October",
-		"authors" :[
-			{
-				"author" : "Tom Clancey"
-			}
-		],
+		"authors" : "Tom Clancey",
 		"year" : "1984",
 		"publisher" : "Naval Institute Press",
 		"pages" : "387",
@@ -25,14 +17,7 @@
 	},
 	{
 		"title" : "Command Authority",
-		"authors" :[
-			{
-				"author" : "Clive Cussler"
-			},
-			{
-				"author" : "Mark Greaney"
-			}
-		],
+		"authors" : "Tom Clancey, Mark Greaney",
 		"year" : "2013",
 		"publisher" : "G.P. Putnam's Sons",
 		"pages" : "736",
