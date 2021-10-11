@@ -35,9 +35,9 @@ library(jsonlite)
 
 ```{r}
 html_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.html'
+html_file <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.html'
 
-html_parse <- xmlParse(html_file)
-html_df <- xmlToDataFrame(html_parse)
+(html_df <- readHTMLTable(html_file))
 ```
 # Read XML Data
 
