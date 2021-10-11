@@ -1,11 +1,11 @@
 ---
 title: 'DATA607 - Assignment Week 7'
-subtitle: 'Working with XML and JSON in R'
+subtitle: 'Working with HTML, XML, and JSON in R'
 author: "Donald Butler"
 date: "10/10/2021"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
   word_document: default
 ---
 
