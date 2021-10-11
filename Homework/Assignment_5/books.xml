@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <books>
-	<book>
+	<book id="1">
 		<title>Treasure</title>
 		<authors>Clive Cussler</authors>
 		<year>1988</year>
-		<publisher>Simon & Schuster</publisher>
+		<publisher>Simon and Schuster</publisher>
 		<pages>539</pages>
 		<ISBN>0-671-62132</ISBN>
 	</book>
-	<book>
+	<book id="2">
 		<title>The Hunt for Red October</title>
 		<authors>Tom Clancey</authors>
 		<year>1984</year>
@@ -16,7 +16,7 @@
 		<pages>387</pages>
 		<ISBN>0-870-212850</ISBN>
 	</book>
-	<book>
+	<book id="3">
 		<title>Command Authority</title>
 		<authors>Tom Clancey, Mark Greaney</authors>
 		<year>2013</year>
