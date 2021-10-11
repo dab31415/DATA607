@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<books>
+	<book>
+		<title>Treasure</title>
+		<authors>
+			<author>Clive Cussler</author>
+		</authors>
+		<year>1988</year>
+		<publisher>Simon & Schuster</publisher>
+		<pages>539</pages>
+		<ISBN>0-671-62132</ISBN>
+	</book>
+	<book>
+		<title>The Hunt for Red October</title>
+		<authors>
+			<author>Tom Clancey</author>
+		</authors>
+		<year>1984</year>
+		<publisher>Naval Institute Press</publisher>
+		<pages>387</pages>
+		<ISBN>0-870-212850</ISBN>
+	</book>
+	<book>
+		<title>Command Authority</title>
+		<authors>
+			<author>Tom Clancey</author>
+			<author>Mark Greaney</author>
+		</authors>
+		<year>2013</year>
+		<publisher>G.P. Putnam's Sons</publisher>
+		<pages>736</pages>
+		<ISBN>978-0-39-916077-9</ISBN>
+	</book>
+</books>
