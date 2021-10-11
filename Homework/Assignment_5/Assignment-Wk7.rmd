@@ -29,32 +29,29 @@ Are the three data frames identical?
 library(tidyverse)
 library(XML)
 library(jsonlite)
-library(RCurl)
 ```
 
 # Read HTML Data
 
 ```{r}
-HTMLFile <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.html'
-HTMLFile <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.html'
+html_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.html'
 
-(html_df <- XML::readHTMLTable(HTMLFile))
-
+html_parse <- xmlParse(html_file)
+html_df <- xmlToDataFrame(html_parse)
 ```
 # Read XML Data
 
 ```{r}
-XMLFile <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.xml'
-XMLFile <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.xml'
-
-xml_data <- xmlToDataFrame(XMLFile)
+xml_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.xml'
+xml_file <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.xml'
+(xml_df <- xmlToDataFrame(xml_file))
 ```
 
 # Read JSON Data
 
 ```{r}
-JSONFile <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.json'
-(json_data <- fromJSON(JSONFile))
+json_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.json'
+(json_df <- fromJSON(json_file))
 ```
 
 
