@@ -29,29 +29,41 @@ Are the three data frames identical?
 library(tidyverse)
 library(XML)
 library(jsonlite)
+library(xml2)
+library(rvest)
 ```
 
 # Read HTML Data
 
 ```{r}
-html_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.html'
-html_file <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.html'
+html_file <- 'http://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.html'
 
-(html_df <- readHTMLTable(html_file))
+html_df <- read_html(html_file) %>%
+  html_elements('table') %>%
+  html_table()
+
+html_df
 ```
 # Read XML Data
 
 ```{r}
-xml_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.xml'
-xml_file <- 'C:/Users/dab31/OneDrive/Documents/GitHub/DATA607/Homework/Assignment_5/books.xml'
-(xml_df <- xmlToDataFrame(xml_file))
+xml_file <- 'http://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.xml'
+
+xml_df <- read_xml(xml_file) %>%
+  xmlParse() %>%
+  xmlToDataFrame()
+
+xml_df
+
 ```
 
 # Read JSON Data
 
 ```{r}
 json_file <- 'https://raw.githubusercontent.com/dab31415/DATA607/main/Homework/Assignment_5/books.json'
-(json_df <- fromJSON(json_file))
+json_df <- fromJSON(json_file)
+
+json_df
 ```
 
 
