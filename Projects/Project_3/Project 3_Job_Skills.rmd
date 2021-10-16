@@ -63,15 +63,20 @@ jobdat_ngrams <- jobdat_1gram %>%
 jobdat_ngrams %>%
   write.table(file = './jobdat_ngrams.csv',quote = FALSE, sep = '\t', row.names = FALSE)
 
-
 ```
 
 I generated a file of applicable skills, along with common alternative spellings, ML & Machine Learning. On lines with multiple alternatives, they are separated by a pipe |, for RegEx comparison.
 
 ```{r}
 
-jobskills <- read
+jobskills <- read_csv('https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_3/JobSkills.csv')
 
+for (i in 1:nrow(jobskills)) {
+  jobdat[,ncol(jobdat) + 1] <- str_detect(jobdat$description, regex(paste('[^A-Z0-9]',jobskills[i,1],'[^A-Z0-9]',sep = ''),ignore_case = TRUE))
+  colnames(jobdat)[ncol(jobdat)] <- as.character(jobskills[i,1])
+}
+
+glimpse(jobdat)
 
 ```
 
