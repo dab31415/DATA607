@@ -58,7 +58,10 @@ jobdat_3gram <- jobdat %>%
 
 jobdat_ngrams <- jobdat_1gram %>%
   rbind(jobdat_2gram) %>%
-  rbind(jobdat_3gram)
+  rbind(jobdat_3gram) %>%
+  arrange(desc(n))
+
+head(jobdat_ngrams,25)
 
 jobdat_ngrams %>%
   write.table(file = './jobdat_ngrams.csv',quote = FALSE, sep = '\t', row.names = FALSE)
@@ -69,7 +72,13 @@ I generated a file of applicable skills, along with common alternative spellings
 
 ```{r}
 
-jobskills <- read_csv('https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_3/JobSkills.csv')
+(jobskills <- read_csv('https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_3/JobSkills.csv'))
+
+```
+
+I loop though the list of skills and use regex to determine if the skill is listed within the description text. A new attribute is created in the jobs data frame that indicates if the skill is required.
+
+```{r}
 
 for (i in 1:nrow(jobskills)) {
   jobdat[,ncol(jobdat) + 1] <- str_detect(jobdat$description, regex(paste('[^A-Z0-9]',jobskills[i,1],'[^A-Z0-9]',sep = ''),ignore_case = TRUE))
@@ -79,4 +88,3 @@ for (i in 1:nrow(jobskills)) {
 glimpse(jobdat)
 
 ```
-
