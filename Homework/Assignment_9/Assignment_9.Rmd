@@ -1,0 +1,103 @@
+---
+title: 'DATA607 - Assignment Week 9'
+subtitle: 'Web APIs'
+author: "Donald Butler"
+date: "10/24/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The New York Times web site provides a rich set of APIs, as described here: https://developer.nytimes.com/apis. Your task is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and
+transform it into an R DataFrame.
+
+# Setup
+
+## API Key Request
+
+We created an account with the NYTimes and requested an API key. The key was saved in a config.yml file which will be read into the project using the config package. To reproduce this work, you would need to follow the instructions to create a key here: https://developer.nytimes.com/get-started. Then save the key into your own config.yml file.
+
+## Install libraries
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(config)
+library(httr)
+library(jsonlite)
+```
+
+## Load API Key
+
+```{r}
+cfg <- config::get()
+
+base_url <- 'https://api.nytimes.com/svc/books/v3/lists/'
+api_key <- paste('?api-key=',cfg$nytimes$api_key,sep = '')
+```
+
+# List Names Service
+
+The lists/names service returns a list of all the NYT Best Sellers Lists. Some lists are published weekly and others monthly. The response includes when each list was first published and last published.
+
+```{r}
+list_names <- 'names.json'
+
+list_html <- httr::GET(paste(base_url,list_names,api_key,sep = ''))
+list_json <- fromJSON(content(list_html,'text'))
+
+if (list_json$status == 'OK') {
+  lists <- as_tibble(list_json$results)
+
+  lists
+}
+```
+
+# List Data Service
+
+The lists/{date}/{name} service returns the books on the best sellers list for the specified date and list name. To read from the most recent list, use current in place of the date. The name of the list can be found in the list_name_encoded attribute.
+
+## Current Hardcover Nonfiction List
+
+The json that is returned contains details about the list as well as the list of books that are on it.
+
+```{r}
+current_nf_html <- httr::GET(paste(base_url,'current/hardcover-nonfiction.json',api_key,sep = ''))
+current_nf_json <- fromJSON(content(current_nf_html,'text'))
+
+if (current_nf_json$status == 'OK') {
+  current_nf <- as_tibble(current_nf_json$results$books)
+  current_nf %>%
+    select(rank,rank_last_week, weeks_on_list, title, author)
+}
+```
+There are a number of details about each book on the list as seen in the list of attributes. 
+
+```{r}
+glimpse(current_nf)
+```
+
+## Fiction List from Last Year
+
+The API also allows you to go back in time to view older lists. Here is the hardcover fiction list from last year.
+
+```{r}
+old_f_html <- httr::GET(paste(base_url,'lists/2020-10-25/hardcover-fiction.json',api_key,sep = ''))
+old_f_json <- fromJSON(content(old_f_html,'text'))
+
+if (old_f_json$status == 'OK') {
+  old_f <- as_tibble(old_f_json$results$books)
+  old_f %>%
+    select(rank,rank_last_week, weeks_on_list, title, author)
+}
+```
+# Summary
+
+The NY Times API allows us to programmatically access data in a standardized format for further analysis.
+
