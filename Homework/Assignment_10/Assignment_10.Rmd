@@ -1,0 +1,374 @@
+---
+title: 'DATA607 - Assignment Week 10'
+subtitle: 'Sentiment Analysis'
+author: "Donald Butler"
+date: "10/31/2021"
+
+urlcolor: blue
+bibliography: references.bib
+biblio-style: apalike
+link-citations: true
+
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+We were asked to recreate the R code from chapter 2 of the book "Text Mining with R: A Tidy Approach" then perform similar analysis on another authors set of works. 
+
+## Load Packages
+
+Load the packages required to complete the sentiment analysis.
+
+```{r load_packages, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(tidytext)
+library(janeaustenr)
+library(wordcloud)
+library(reshape2)
+```
+
+# Recreate Sentiment Analysis
+
+Recreate the sentiment analysis from Chapter 2 in "Text Mining with R: A Tidy Approach". [@silge17]
+
+## Sentiment Lexicons
+
+A sentiment lexicon is a set of words and a sentiment score that is attributed to each word.
+
+### AFINN-111
+
+The AFINN sentiment lexicon scores words on a scale of -5 (negative sentiment) to 5 (positive sentiment). [@IMM2011-06010]
+
+```{r}
+get_sentiments("afinn")
+```
+
+### Bing
+
+The Bing sentiment lexicon assigns words as either positive or negative. [@Hu04]
+
+```{r}
+get_sentiments("bing")
+```
+
+### NRC Word-Emotion Association Lexicon
+
+The nrc sentiment lexicon classifies words as positive or negative, but also by emotions such as fear or anger. [@mohammad13]
+
+```{r}
+get_sentiments("nrc")
+```
+
+## Sentiment in Jane Austen's Books
+
+Using the Bing sentiment lexicon to compare the sentiment of all of Jane Austen's books.
+
+```{r}
+lines_per_index <- 80
+
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text,regex("^chapter [\\divxlc]", ignore_case = TRUE)))
+  ) %>%
+  ungroup() %>%
+  unnest_tokens(word,text)
+
+jane_austen_sentiment <- tidy_books %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(book, index = linenumber %/% lines_per_index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+jane_austen_sentiment %>%
+  ggplot(aes(index, sentiment, fill = book)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~book, ncol = 2, scales = "free_x")
+
+```
+
+## Comparing Sentiment Lexicons
+
+In Jane Austen's book "Pride and Prejudice", we will compare the three sentiment lexicons.
+
+```{r}
+pride_prejudice <- tidy_books %>%
+  filter(book == "Pride & Prejudice")
+
+afinn <- pride_prejudice %>%
+  inner_join(get_sentiments('afinn'), by = 'word') %>%
+  group_by(index = linenumber %/% lines_per_index) %>%
+  summarize(sentiment = sum(value)) %>%
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+  pride_prejudice %>%
+    inner_join(get_sentiments('bing'), by = 'word') %>%
+    mutate(method = "Bing et al."),
+  pride_prejudice %>%
+    inner_join(get_sentiments('nrc') %>%
+                 filter(sentiment %in% c('positive','negative')), by = 'word') %>%
+    mutate(method = 'NRC')
+) %>%
+  count(method, index = linenumber %/% lines_per_index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+bind_rows(afinn, bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~method, ncol = 1, scales = 'free_y')
+
+```
+
+## Common Positive and Negative Words
+
+Determine the most common positive and negative words in Jane Austen's books.
+
+```{r}
+bing_word_counts <- tidy_books %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~sentiment, scales = 'free_y') + 
+  labs(x = 'Contribution to sentiment', y = NULL)
+```
+
+## Custom Stop Words
+
+The word 'miss' is contributing significantly towards negative sentiment, but it's use within Jane Austen's books isn't used in that context. Create a custom stop word list to adjust for anomalies in the sentiment lexicon used.
+
+```{r}
+custom_stop_words <- bind_rows(tibble(word = c('miss'), lexicon = c('custom')), stop_words)
+
+custom_stop_words
+```
+
+## Wordclouds
+
+Construct a wordcloud of the most common words in Jane Austen's books.
+
+```{r}
+tidy_books %>%
+  anti_join(stop_words, by = 'word') %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+### Wordcoulds by Sentiment
+
+Construct a wordcloud of the positive and negative words in Jane Austen's books.
+
+```{r}
+tidy_books %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = 'n', fill = 0) %>%
+  comparison.cloud(colors = c('gray20', 'gray80'), max.words = 100)
+```
+
+## Sentiment based on other units
+
+Instead of considering sentiment on a word for word basis, we can look at it based on other units of text such as chapters. Determine the most negative chapter in each book. 
+
+```{r}
+austen_chapters <- austen_books() %>%
+  group_by(book) %>%
+  unnest_tokens(chapter, text, token = 'regex', pattern = "Chapter|CHAPTER|chapter [\\divxlc]") %>%
+  ungroup()
+
+austen_chapters %>%
+  group_by(book) %>%
+  summarize(chapters = n())
+
+bing_negative <- get_sentiments('bing') %>%
+  filter(sentiment == 'negative')
+
+wordcounts <- tidy_books %>%
+  group_by(book, chapter) %>%
+  summarize(words = n())
+
+tidy_books %>%
+  semi_join(bing_negative, by = 'word') %>%
+  group_by(book, chapter) %>%
+  summarize(negativewords = n()) %>%
+  left_join(wordcounts, by = c('book','chapter')) %>%
+  mutate(ratio = negativewords / words) %>%
+  filter(chapter != 0) %>%
+  slice_max(ratio, n = 1) %>%
+  ungroup()
+
+```
+
+# Sir Arthur Conan Doyle
+
+Perform a similar analysis based on the works of author Sir Arthur Conan Doyle. 
+
+## Project Gutenberg
+
+Project Gutenberg is a library of public domain works. The gutenbergr package allows access to these works. [@gutenbergr] Retrieve a list of the Sherlock Holmes books that are available.
+
+```{r}
+library(gutenbergr)
+
+doyle_books <- gutenberg_works(author == 'Doyle, Arthur Conan') %>%
+  filter(gutenberg_bookshelf == 'Detective Fiction')
+
+doyle_books
+```
+
+With the list of books, download the works and tidy. 
+
+```{r}
+tidy_doyle <- doyle_books %>%
+  gutenberg_download(meta_fields = 'title') %>%
+  group_by(gutenberg_id) %>%
+  mutate(linenumber = row_number()) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+```
+
+Unfortunately, in this collection of works, chapter pages are not present, so we are unable to consider a units by chapter.
+
+## Sentiment in Sir Arthur Conan Doyal's Books
+
+Using the Bing sentiment lexicon to compare the sentiment of all of the Sherlock Holmes books.
+
+```{r, fig.height = 10}
+lines_per_index <- 80
+
+doyle_sentiment <- tidy_doyle %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(title, index = linenumber %/% lines_per_index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+doyle_sentiment %>%
+  ggplot(aes(index, sentiment, fill = title)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~title, ncol = 3, scales = "free_x")
+
+```
+
+## Comparing Sentiment Lexicons
+
+In "A Study in Scarlet", we will compare the three sentiment lexicons.
+
+```{r}
+study_scarlet <- tidy_doyle %>%
+  filter(title == "A Study in Scarlet")
+
+scarlet_afinn <- study_scarlet %>%
+  inner_join(get_sentiments('afinn'), by = 'word') %>%
+  group_by(index = linenumber %/% lines_per_index) %>%
+  summarize(sentiment = sum(value)) %>%
+  mutate(method = "AFINN")
+
+scarlet_bing_and_nrc <- bind_rows(
+  study_scarlet %>%
+    inner_join(get_sentiments('bing'), by = 'word') %>%
+    mutate(method = "Bing et al."),
+  study_scarlet %>%
+    inner_join(get_sentiments('nrc') %>%
+                 filter(sentiment %in% c('positive','negative')), by = 'word') %>%
+    mutate(method = 'NRC')
+) %>%
+  count(method, index = linenumber %/% lines_per_index, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+bind_rows(scarlet_afinn, scarlet_bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~method, ncol = 1, scales = 'free_y')
+
+```
+
+## Syuzhet 
+
+I tried playing with the Syuzhet package to use another sentiment lexicon. [@syuzhet] The package computes a sentiment score for each line of the book text. 
+
+```{r}
+library(syuzhet)
+
+study_in_scarlet <- doyle_books %>%
+  filter(title == 'A Study in Scarlet') %>%
+  gutenberg_download(meta_fields = 'title') %>%
+  filter(grepl('[A-Za-z]',text))
+
+syuzhet_sentiment <- get_sentiment(study_in_scarlet$text, method = 'syuzhet')
+summary(syuzhet_sentiment)
+```
+
+
+## Common Positive and Negative Words
+
+Determine the most common positive and negative words in the Sherlock Holmes books.
+
+```{r}
+doyle_bing_word_counts <- tidy_doyle %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+doyle_bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(~sentiment, scales = 'free_y') + 
+  labs(x = 'Contribution to sentiment', y = NULL)
+```
+
+## Custom Stop Words
+
+Again we see the word 'miss' on the common negative list, although not as impacting with Jane Austen's work, but based on the time period I would expect a fair number of instances are referring to a women and not the negative context.
+
+
+## Wordclouds
+
+Construct a wordcloud of the most common words in the Sherlock Holmes books.
+
+```{r}
+tidy_doyle %>%
+  anti_join(stop_words, by = 'word') %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+### Wordcoulds by Sentiment
+
+Construct a wordcloud of the positive and negative words in Jane Austen's books.
+
+```{r}
+tidy_doyle %>%
+  inner_join(get_sentiments('bing'), by = 'word') %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = 'n', fill = 0) %>%
+  comparison.cloud(colors = c('gray20', 'gray80'), max.words = 100)
+```
+
+## Sentiment based on other units
+
+Unfortunately the chapter pages that were in Jane Austen's books, do not appear in the files for Sir Arthur Conan Doyle, so a similar analysis cannot be performed.
+
+# References
