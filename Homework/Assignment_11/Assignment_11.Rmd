@@ -1,0 +1,53 @@
+---
+title: 'DATA607 - Assignment Week 11'
+subtitle: 'Recommender Systems'
+author: "Donald Butler"
+date: "11/07/2021"
+urlcolor: blue
+bibliography: references.bib
+biblio-style: apalike
+link-citations: true
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Credit Karma
+
+Credit Karma is a website that allows their members to monitor their credit score. They provide this information, along with regular updates, to their members for free.
+
+## Who are the target users?
+
+Their target users are adults that want to monitor their credit history and scores to improve their financial situation.
+
+## What are the key goals?
+
+Many users want active monitoring to ensure that:  
+  * Credit accounts have not been opened in their name without their knowledge.  
+  * Credit reports do not contain inaccurate or adverse information.  
+  * Credit scores do not decline over time.  
+
+
+## How can you help them accomplish their goals?
+
+Credit Karma monetizes their members' data to match them with 3rd party suppliers of financial products. Credit Karma profits from their advertisers when a member selects and is approved for an offer, so it is in their best interest to provide recommendations to their members that are wanted and can likely be approved for.
+
+Credit Karma works with 3rd party vendors that provide:  
+  * Credit Cards  
+  * Auto Loans  
+  * Personal Loans  
+  * Home Mortgages  
+  * Car Insurance  
+  
+Credit Karma will use details on their members credit reports to determine the best products to offer to each member. They are incentivized to offer the products that their members want, because they do not receive payment unless the members actually apply for the offer. [@creditkarma]
+
+# Conclusion
+
+In exchange for free credit monitoring to their members, Credit Karma monetizes the data to provide recommendations that their members desire while also maximizing profits from these recommendations. 
+
+# References
