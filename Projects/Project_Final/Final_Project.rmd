@@ -2,19 +2,30 @@
 title: 'DATA607 - Final Project'
 subtitle: 'Cycling Data'
 author: "Donald Butler"
-date: "12/04/2021"
+date: "12/08/2021"
 output:
+  html_document:
+    includes:
+      in_header: header.html
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
   pdf_document: default
-  html_document: default
-  word_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction
+# DATA 607 Final Project
 
+## Introduction
+
+I serve on the board for my local cycling club and for the past 6 years I have been collecting the sign-in sheets from our club rides. We hold about 200 rides per year and regularly discuss falling membership and ride attendance, and often speculate that some rides are less popular for various reasons. I have thought about analyzing the sign-in sheet data that I have, but it's not currently in a format that would be conducive to reading digitally.
+
+I was inspired by a dataset that I found which examined data from a bicycle ride sharing service in Washington DC and correlated historical weather data. I downloaded two years of data from https://www.capitalbikeshare.com/. Then acquired a corresponding weather dataset for the same time period.
 
 ## Load required R Libraries
 
@@ -39,29 +50,49 @@ is.holiday <- function(date) {
 
 ```
 
-## Download Bike Share Data
+\newpage
+
+## Data
+
+### Download Bike Share Data
+
+Capital Bike Share provides system data each month that contains complete trip history.
+
+* Duration  
+* Start Date  
+* End Date  
+* Start Station  
+* End Station  
+* Bike Number  
+* Member Type - (Member, Casual)  
+
+Data is provided in monthly zip files. I downloaded the files for 2018 and 2019 then extract the csv file that is within the file.
 
 ```{r download_zips, warning=FALSE, message=FALSE}
 for (year in 2018:2019) {
   for (month in 1:12) {
     zipfile <- paste0(year, str_pad(month, 2, "left", "0"), "-capitalbikeshare-tripdata.zip")
-    if (!file.exists(paste0('./DATA/ZIPS/', zipfile))) {
-      download.file(paste0('https://s3.amazonaws.com/capitalbikeshare-data/', zipfile), paste0('./DATA/ZIPS/',zipfile))
-      unzip(paste0('./DATA/ZIPS/',zipfile), exdir = 'DATA')
+    if (!file.exists(paste0('./Data/Bike/Zips/', zipfile))) {
+      download.file(paste0('https://s3.amazonaws.com/capitalbikeshare-data/', zipfile), paste0('./Data/Bike/Zips/',zipfile))
+      unzip(paste0('./Data/Bike/Zips/',zipfile), exdir = 'Data/Bike')
     }
   }
 }
 ```
 
-## Read extracted .csv files
+### Read Bike Share Data
 
-```{r read_csv}
-filenames <- list.files(path = './DATA/', pattern = '.csv')
+Each data file contains an observation for each bike ride. For this project I wanted to compare the daily number of rides so I will be grouping the data to build a dataset with an observation for each day in my two years of data.
 
-df <- tibble()
+I created the same variables as the dataset I was using for my DATA 606 project so that I might be able to compare them later.
+
+```{r warning=FALSE, message=FALSE}
+filenames <- list.files(path = './Data/Bike/', pattern = '.csv')
+
+bike_df <- tibble()
 
 for (i in 1:length(filenames)) {
-  tmp <- read_csv(paste0('./DATA/', filenames[i]), show_col_types = FALSE) %>%
+  tmp <- read_csv(paste0('./Data/Bike/', filenames[i]), show_col_types = FALSE) %>%
     rename(start_date = `Start date`, member_type = `Member type`) %>%
     mutate(dteday = as.Date(start_date)) %>%
     group_by(dteday) %>%
@@ -69,12 +100,15 @@ for (i in 1:length(filenames)) {
     mutate(yr = as.integer(lubridate::year(dteday)),
            mnth = as.integer(lubridate::month(dteday)),
            season = as.integer(get_season(dteday)),
+           season_name = case_when(season == 1 ~ 'Winter', season == 2 ~ 'Spring',
+                                   season == 3 ~ 'Summer', season == 4 ~ 'Fall'),
            holiday = as.integer(is.holiday(dteday)),
            weekday = as.integer(lubridate::wday(dteday) - 1),
            workingday = as.integer(ifelse(holiday == 0 & weekday %in% c(1:5), 1, 0)),
            member = as.integer(ifelse(member_type == 'Member', 1, 0))) %>%
     select(dteday,
            season,
+           season_name,
            yr,
            mnth,
            holiday,
@@ -83,10 +117,162 @@ for (i in 1:length(filenames)) {
            member,
            cnt)
 
-  df <- df %>% rbind(tmp)
+  bike_df <- bike_df %>% rbind(tmp)
 }
 
-df
+glimpse(bike_df)
+```
+
+\newpage
+
+### Read Washington DC weather data
+
+I had intend to use an API to obtain the weather data for my project, but had a hard time finding anything that would allow me to gather data from the time period of my cycling data. To move the project forward, I used a bulk download of data from https://openweathermap.org/. Recently I found a site that I could possibly scrape data from.
+
+My weather data provides an observation for each hour of the two year period I selected. Using this data I constructed a daily summary which included average temperature, humidity, wind speed, precipitation, and cloud coverage. 
+
+```{r warning=FALSE, message=FALSE}
+if (!file.exists('./Data/Weather/WashingtonDC_Weather.csv')) {
+  download.file('https://raw.githubusercontent.com/dab31415/DATA607/main/Projects/Project_Final/Data/Weather/WashingtonDC_Weather.csv', './Data/Weather/WashingtonDC_Weather.csv')
+}
+
+weather_df <- read_csv('./Data/Weather/WashingtonDC_Weather.csv', show_col_types = FALSE) %>%
+  filter(grepl('^201[8-9]',dt_iso)) %>%
+  mutate(dteday = as.Date(substr(dt_iso,1,10)),
+         precipitation = ifelse(is.na(rain_1h), 0, rain_1h) + ifelse(is.na(snow_1h), 0, snow_1h)) %>%
+  select(dteday,
+         temp,
+         humidity,
+         wind_speed,
+         precipitation,
+         clouds_all) %>%
+  distinct() %>%
+  group_by(dteday) %>%
+  summarise(temp = mean(temp),
+            humidity = mean(humidity),
+            wind_speed = mean(wind_speed),
+            precipitation = sum(precipitation),
+            clouds = mean(clouds_all))
+
+glimpse(weather_df)
+```
+
+\newpage
+
+### Join Bike and Weather data
+
+I joined the two datasets by date to produce a single dataset that I could analyse.
+
+```{r warning=FALSE, message=FALSE}
+df <- bike_df %>%
+  inner_join(weather_df, by = 'dteday')
+
+glimpse(df)
+```
+
+\newpage
+
+## Statistical Analysis
+
+### Impact of Temperature
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = temp, y = cnt)) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Temperature', x = 'Temperature [F]', y = 'Rides')
+```
+
+\newpage
+
+### Impact of Precipitation
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = precipitation, y = cnt)) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Precipitation', x = 'Precipitation [mm]', y = 'Rides')
+```
+
+\newpage
+
+### Rides vs Temperature by Member Type
+
+The bike share data classifies each rider based on their membership. A full member has an annual or monthly membership and a casual rider has a 1 or 5 day pass to the system. This seems to be important because full members are primarily commuters which may ride in colder conditions than the casual rider.
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+df %>%
+  ggplot(aes(x = temp, y = cnt, color = factor(member))) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Temperature by Member Type', x = 'Temperature [F]', y = 'Rides', color = 'Member Type') + 
+  scale_color_manual(labels = c('Casual','Member'), values = c('red', 'blue'))
 
 ```
+
+\newpage
+
+### Impact of the Season
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = season_name, y = cnt)) + 
+  geom_boxplot(varwidth=T, fill='plum') + 
+  labs(title = 'Daily Rides grouped by Season',
+       x = 'Season',
+       y = 'Rides')
+
+
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = temp, y = cnt, color = season_name)) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Temperature by Season', x = 'Temperature [F]', y = 'Rides', color = 'Season')
+
+```
+
+\newpage
+
+### Rides by Day of Week
+
+```{r warning=FALSE, message=FALSE, fig.height=4}
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = temp, y = cnt, color = factor(weekday))) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Temperature by Day of Week', x = 'Temperature [F]', y = 'Rides', color = 'Day of Week') + 
+  scale_color_manual(labels = c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), values = c('red', 'orange', 'green', 'blue', 'purple', 'gray','pink'))
+
+df %>%
+  group_by_at(vars(-member, -cnt)) %>%
+  summarise(cnt = sum(cnt)) %>%
+  ggplot(aes(x = temp, y = cnt, color = factor(workingday))) + 
+  geom_point() + geom_smooth(method = 'lm', se = FALSE) + 
+  labs(title = 'Daily Rides vs Temperature by Working Day', x = 'Temperature [F]', y = 'Rides', color = 'Working Day') + 
+  scale_color_manual(labels = c('Weekend','Weekday'), values = c('red', 'blue'))
+
+```
+
+\newpage
+
+## Linear Regression
+
+```{r message=FALSE, warning=FALSE}
+m_best <- df %>%
+  lm(cnt ~ temp + workingday + + season_name + member + precipitation + humidity, data = .)
+summary(m_best)
+```
+
+The predictors of temperature, season, member type, precipitation, humidity, and working day all shown to be statistically significant and were able to account for 82% of the variability in the daily number of rides.
+
+## Conclusion
+
+I would like to expand this work with my own club's cycling data. I may be able to add additional predictors for the ride (distance, hilliness, etc) and also include member attributes (age, sex, employment status, etc). 
 
